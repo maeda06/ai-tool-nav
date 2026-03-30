@@ -6,31 +6,36 @@ import AffiliateButton from "@/components/AffiliateButton";
 import type { Metadata } from "next";
 
 interface Props {
-  params: Promise<{ pair: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
   const slugs = await getAllComparisonSlugs();
-  return slugs.map((pair) => ({ pair }));
+  // Next.js 16 output:export では空配列を返すとビルドエラーになるため
+  // データがない場合はプレースホルダーを返す
+  if (slugs.length === 0) {
+    return [{ slug: "_placeholder" }];
+  }
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { pair } = await params;
-  const comparison = await getComparison(pair);
+  const { slug } = await params;
+  const comparison = await getComparison(slug);
   if (!comparison) return {};
   return genMeta({
     title: `${comparison.tool_a.name} vs ${comparison.tool_b.name} 徹底比較【2026年最新】`,
     description:
       comparison.summary ||
       `${comparison.tool_a.name}と${comparison.tool_b.name}を料金・機能・使いやすさで徹底比較。`,
-    path: `/compare/${pair}`,
+    path: `/compare/${slug}`,
     ogType: "article",
   });
 }
 
 export default async function ComparePage({ params }: Props) {
-  const { pair } = await params;
-  const comparison = await getComparison(pair);
+  const { slug } = await params;
+  const comparison = await getComparison(slug);
   if (!comparison) notFound();
 
   const { tool_a, tool_b } = comparison;
@@ -94,12 +99,12 @@ export default async function ComparePage({ params }: Props) {
         <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <h3 className="font-bold text-lg mb-4">{tool_a.name}</h3>
           <p className="text-sm text-gray-600 mb-4">{tool_a.description}</p>
-          <AffiliateButton tool={tool_a} pageType="compare" pageSlug={pair} />
+          <AffiliateButton tool={tool_a} pageType="compare" pageSlug={slug} />
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
           <h3 className="font-bold text-lg mb-4">{tool_b.name}</h3>
           <p className="text-sm text-gray-600 mb-4">{tool_b.description}</p>
-          <AffiliateButton tool={tool_b} pageType="compare" pageSlug={pair} />
+          <AffiliateButton tool={tool_b} pageType="compare" pageSlug={slug} />
         </div>
       </section>
     </div>
